@@ -1,49 +1,29 @@
 #include "minimize.hh"
+#include <fstream>
 
 namespace cmkv
 {
 
-  float get_ratio(std::uint8_t candidate, image<std::uint8_t> const &x, image<std::uint8_t> const &y, unsigned int i, unsigned int j, unsigned int threshold)
+  float applyFunction(std::uint8_t candidate, image<std::uint8_t> const &x, image<std::uint8_t> const &y, unsigned int i, unsigned int j, unsigned int threshold)
   {
-    std::uint8_t regularizer_denominator = 0;
-    std::uint8_t regularizer_numerator = 0;
-    std::uint8_t data_consistency_denominator = 0;
-    std::uint8_t data_consistency_numerator = 0;
+    std::uint8_t regularizer = 0;
+    std::uint8_t data_consistency = 0;
 
     if (i > 0)
-    {
-      regularizer_denominator += (x(j, i) != x(j, i-1));
-      regularizer_numerator += (candidate != x(j, i-1));
-    }
+      regularizer += (candidate != x(j, i-1));
     if (i < x.height - 1)
-    {
-      regularizer_denominator += (x(j, i) != x(j, i+1));
-      regularizer_numerator += (candidate != x(j, i+1));
-    }
+      regularizer += (candidate != x(j, i+1));
     if (j > 0)
-    {
-      regularizer_denominator += (x(j, i) != x(j-1, i));
-      regularizer_numerator += (candidate != x(j-1, i));
-    }
-    else if (j < x.width - 1)
-    {
-      regularizer_denominator += (x(j, i) != x(j+1, i));
-      regularizer_numerator += (candidate != x(j+1, i));
-    }
+      regularizer += (candidate != x(j-1, i));
+    if (j < x.width - 1)
+      regularizer += (candidate != x(j+1, i));
 
-    if (x(j, i) == 0)
-      data_consistency_denominator = y(j, i);
-    else
-      data_consistency_denominator = 255 - y(j, i) + threshold;
     if (candidate == 0)
-      data_consistency_numerator = y(j, i);
+      data_consistency = y(j, i);
     else
-      data_consistency_numerator = 255 - y(j, i) + threshold;
+      data_consistency = 255 - y(j, i) + threshold;
 
-    float u_denominator = 1 * data_consistency_denominator + 0 * regularizer_denominator;
-    float u_numerator = 1 * data_consistency_numerator + 0 * regularizer_numerator;
-
-    return u_denominator - u_numerator;
+    return 1 * data_consistency + 1 * regularizer;
   }
 
   float update_temp(float r)
@@ -67,23 +47,27 @@ namespace cmkv
     auto result = image<std::uint8_t>(img.width, img.height);
     Rand random;
     float T = 4;
-    unsigned int count = 0;
-    unsigned int iterations = 10000000;
+    unsigned int iterations = 1000000;
+    std::ofstream myfile;
+    myfile.open("temperature.txt");
     for (size_t iter = 0; iter < iterations; iter++)
     {
+      myfile << T << "\n";
       unsigned int row = random.randint(0, img.height - 1);
       unsigned int col = random.randint(0, img.width - 1);
       int thresh = get_threshold_value(row, col, kernel);
+      //int candidate = result(col, row) == 0 ? 1: 0;
       int candidate = random.randint(0, 1);
-      float value = get_ratio(candidate, result, img, row, col, thresh);
-      float p = expf(std::min(0.0f, value) / T);
+      float energyNewState = applyFunction(candidate, result, img, row, col, thresh);
+      float energyCurrentState = applyFunction(result(col, row), result, img, row, col, thresh);
+      float energy = energyNewState - energyCurrentState;
+      float p = expf(std::min(0.0f, -energy) / T);
       if (random.rand() < p)
-      {
-        count++;
         result(col, row) = candidate * 255;
-      }
-      T *= update_temp(static_cast<float>(iter) / static_cast<float>(iterations));
+      T *= 0.99999;
+      //T *= update_temp(static_cast<float>(iter) / static_cast<float>(iterations));
     }
+    myfile.close();
     // FIXME: replace the code below by yours!
     /*auto result = image<std::uint8_t>(img.width, img.height);
     for (std::size_t y = 0; y < img.height; y++)
