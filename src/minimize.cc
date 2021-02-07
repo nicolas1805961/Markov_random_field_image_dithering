@@ -40,10 +40,11 @@ namespace cmkv
 
   image<std::uint8_t> minimize(const image<std::uint8_t>& img)
   {
-    std::vector<std::vector<std::uint8_t>> kernel{
-      {64, 128},
-      {192, 0}
-    };
+    std::vector<std::vector<std::uint8_t> > kernel{
+        {0, 128, 32, 159},
+        {191, 64, 223, 96},
+        {48, 175, 16, 143},
+        {239, 112, 207, 80}};
     auto result = image<std::uint8_t>(img.width, img.height);
     Rand random;
     float T = 4;
@@ -68,11 +69,6 @@ namespace cmkv
       //T *= update_temp(static_cast<float>(iter) / static_cast<float>(iterations));
     }
     myfile.close();
-    // FIXME: replace the code below by yours!
-    /*auto result = image<std::uint8_t>(img.width, img.height);
-    for (std::size_t y = 0; y < img.height; y++)
-      for (std::size_t x = 0; x < img.width; x++)
-	result(x, y) = img(x, y) > 127u ? 255u : 0u;*/
     return result;
   }
 
