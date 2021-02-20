@@ -56,11 +56,8 @@ namespace cmkv
     Rand random;
     float T = 4;
     unsigned int iterations = 1000000;
-    std::ofstream myfile;
-    myfile.open("temperature.txt");
     for (size_t iter = 0; iter < iterations; iter++)
     {
-      myfile << T << "\n";
       unsigned int row = random.randint(0, img.height - 1);
       unsigned int col = random.randint(0, img.width - 1);
       int candidate = random.randint(0, 1);
@@ -72,7 +69,6 @@ namespace cmkv
         result(col, row) = candidate * 255;
       T *= 0.99999;
     }
-    myfile.close();
     return result;
   }
 
